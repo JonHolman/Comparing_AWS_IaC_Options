@@ -1,9 +1,9 @@
 {
   "scripts": {
-    "deploy": "sls deploy"
+    "deploy": "sls deploy",
+    "info": "sls info"
   },
   "devDependencies": {
-    "serverless-bundle": "^6.0.0",
-    "typescript": "^5.0.4"
+    "serverless-bundle": "^6.0.0"
   }
 }
