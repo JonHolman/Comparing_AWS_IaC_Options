@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>CORS API Test</h1>
+    <form onsubmit="submitForm(event)">
+      <div class="input-group">
+        <input type="text" id="endpoint-url" class="form-control" value="" />
+        <div class="input-group-append">
+          <button class="btn btn-primary" type="submit" aria-label="Get Data">Get Data</button>
+        </div>
+      </div>
+    </form>
+    <pre id="response-data"></pre>
+  </div>
+  <script>
+    const form = document.querySelector("form");
+    const input = document.querySelector("#endpoint-url");
+    const responseData = document.querySelector("#response-data");
+
+    function fetchData(url) {
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          responseData.innerText = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          responseData.innertext = `ERROR ${err.message} ERROR`;
+        });
+    }
+
+    function submitForm(e) {
+      e.preventDefault();
+      const url = input.value;
+      fetchData(url);
+    }
+  </script>
+</body>
+</html>

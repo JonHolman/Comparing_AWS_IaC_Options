@@ -1,0 +1,53 @@
+service: sls
+frameworkVersion: "3"
+
+package:
+  individually: true
+
+plugins:
+  - serverless-bundle
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: nodejs18.x
+  environment:
+    DYNAMODB_TABLE: ${self:service}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+          Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  list:
+    handler: functions/list/handler.handler
+    events:
+      - http:
+          path: /list
+          method: get
+
+  add:
+    handler: functions/add/handler.handler
+    events:
+      - http:
+          path: /add
+          method: get
+
+resources:
+  Resources:
+    DynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
