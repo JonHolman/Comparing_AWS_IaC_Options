@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "deploy": "cdk deploy"
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy"
   },
   "devDependencies": {
     "@types/node": "20.1.0",

@@ -1,5 +1,6 @@
 {
   "scripts": {
-    "deploy": "sam build && sam deploy"
+    "deploy": "sam build && sam deploy",
+    "destroy": "sam delete"
   }
 }

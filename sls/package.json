@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "deploy": "sls deploy",
-    "info": "sls info"
+    "deploy": "sls deploy && sls info",
+    "destroy": "sls remove"
   },
   "devDependencies": {
     "serverless-bundle": "^6.0.0"
