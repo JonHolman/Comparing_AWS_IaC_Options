@@ -5,10 +5,35 @@ import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Table, AttributeType } from "aws-cdk-lib/aws-dynamodb";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 
-interface ResourceConfig {
+interface OurFunctionProps {
+  api: RestApi;
+  table: Table;
   path: string;
-  functionName: string;
-  handlerPath: string;
+}
+
+class OurFunction extends Construct {
+  constructor(scope: Construct, id: string, config: OurFunctionProps) {
+    super(scope, id);
+
+    const lambdaFunction = new NodejsFunction(this, `${config.path}Function`, {
+      entry: `${__dirname}/../../functions/${config.path}/handler.ts`,
+      environment: { DYNAMODB_TABLE: config.table.tableName },
+      runtime: Runtime.NODEJS_18_X,
+    });
+
+    const functionIntegration = new LambdaIntegration(lambdaFunction);
+
+    const resource = config.api.root.addResource(config.path);
+    resource.addMethod("GET", functionIntegration);
+
+    // Grant the Lambda function permission to access the DynamoDB table
+    config.table.grantReadWriteData(lambdaFunction);
+
+    // Add new API endpoint to the stack outputs
+    new CfnOutput(this, `${config.path}Endpoint`, {
+      value: config.api.urlForPath(`/${config.path}`),
+    });
+  }
 }
 
 export class CdkStack extends Stack {
@@ -25,46 +50,22 @@ export class CdkStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    const createLambdaFunction = (config: ResourceConfig) =>
-      new NodejsFunction(this, config.functionName, {
-        entry: `${__dirname}/../../functions/${config.handlerPath}`,
-        environment: { DYNAMODB_TABLE: table.tableName },
-        runtime: Runtime.NODEJS_18_X,
-      });
-
-    const resourceConfigs: ResourceConfig[] = [
-      {
-        path: "list",
-        functionName: "listFunction",
-        handlerPath: "list/handler.ts",
-      },
-      {
-        path: "add",
-        functionName: "addFunction",
-        handlerPath: "add/handler.ts",
-      },
-    ];
-
+    // Create the API Gateway
     const api = new RestApi(this, "api", {
       restApiName: "cdk",
     });
 
-    resourceConfigs.forEach((config) => {
-      const lambdaFunction = createLambdaFunction(config);
-      const integration = new LambdaIntegration(lambdaFunction);
-
-      const resource = api.root.addResource(config.path);
-      resource.addMethod("GET", integration);
-
-      // Grant the Lambda function permission to access the table
-      table.grantReadWriteData(lambdaFunction);
+    // Create the functions with their associated API gateway paths
+    new OurFunction(this, "listFunction", {
+      api,
+      table,
+      path: "list",
     });
 
-    resourceConfigs.forEach(
-      (config) =>
-        new CfnOutput(this, `${config.path}Endpoint`, {
-          value: api.urlForPath(`/${config.path}`),
-        })
-    );
+    new OurFunction(this, "addFunction", {
+      api,
+      table,
+      path: "add",
+    });
   }
 }
