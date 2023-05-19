@@ -1,13 +1,19 @@
-import { Stack, StackProps, CfnOutput, RemovalPolicy } from "aws-cdk-lib";
+import { Stack, CfnOutput, RemovalPolicy } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { RestApi, LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Table, AttributeType } from "aws-cdk-lib/aws-dynamodb";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 
+interface ResourceConfig {
+  path: string;
+  functionName: string;
+  handlerPath: string;
+}
+
 export class CdkStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
 
     // Create the DynamoDB table
     const table = new Table(this, "Table", {
@@ -19,40 +25,46 @@ export class CdkStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    const listFunction = new NodejsFunction(this, "listFunction", {
-      entry: `${__dirname}/../../functions/list/handler.ts`,
-      environment: { DYNAMODB_TABLE: table.tableName },
-      runtime: Runtime.NODEJS_18_X,
-    });
+    const createLambdaFunction = (config: ResourceConfig) =>
+      new NodejsFunction(this, config.functionName, {
+        entry: `${__dirname}/../../functions/${config.handlerPath}`,
+        environment: { DYNAMODB_TABLE: table.tableName },
+        runtime: Runtime.NODEJS_18_X,
+      });
 
-    const addFunction = new NodejsFunction(this, "addFunction", {
-      entry: `${__dirname}/../../functions/add/handler.ts`,
-      environment: { DYNAMODB_TABLE: table.tableName },
-      runtime: Runtime.NODEJS_18_X,
-    });
+    const resourceConfigs: ResourceConfig[] = [
+      {
+        path: "list",
+        functionName: "listFunction",
+        handlerPath: "list/handler.ts",
+      },
+      {
+        path: "add",
+        functionName: "addFunction",
+        handlerPath: "add/handler.ts",
+      },
+    ];
 
     const api = new RestApi(this, "api", {
       restApiName: "cdk",
     });
 
-    const listIntegration = new LambdaIntegration(listFunction);
-    const addIntegration = new LambdaIntegration(addFunction);
+    resourceConfigs.forEach((config) => {
+      const lambdaFunction = createLambdaFunction(config);
+      const integration = new LambdaIntegration(lambdaFunction);
 
-    const listResource = api.root.addResource("list");
-    const listMethod = listResource.addMethod("GET", listIntegration);
+      const resource = api.root.addResource(config.path);
+      resource.addMethod("GET", integration);
 
-    const addResource = api.root.addResource("add");
-    const addMethod = addResource.addMethod("GET", addIntegration);
-
-    // Grant the Lambda functions permission to access the table
-    table.grantReadData(listFunction);
-    table.grantWriteData(addFunction);
-
-    new CfnOutput(this, "listEndpoint", {
-      value: api.urlForPath("/list"),
+      // Grant the Lambda function permission to access the table
+      table.grantReadWriteData(lambdaFunction);
     });
-    new CfnOutput(this, "addEndpoint", {
-      value: api.urlForPath("/add"),
-    });
+
+    resourceConfigs.forEach(
+      (config) =>
+        new CfnOutput(this, `${config.path}Endpoint`, {
+          value: api.urlForPath(`/${config.path}`),
+        })
+    );
   }
 }
