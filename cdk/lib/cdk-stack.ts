@@ -1,4 +1,4 @@
-import { Stack, StackProps, CfnOutput } from "aws-cdk-lib";
+import { Stack, StackProps, CfnOutput, RemovalPolicy } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { RestApi, LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
@@ -16,6 +16,7 @@ export class CdkStack extends Stack {
         type: AttributeType.STRING,
       },
       tableName: "cdk",
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     const listFunction = new NodejsFunction(this, "listFunction", {
