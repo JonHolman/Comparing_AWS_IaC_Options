@@ -9,7 +9,7 @@
     "eslint-plugin-prettier": "^4.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.332.0",
+    "@aws-sdk/client-dynamodb": "^3.363.0",
     "esbuild": "^0.14.14"
   },
   "scripts": {
