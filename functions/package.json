@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.363.0",
-    "esbuild": "^0.14.14"
+    "esbuild": "^0.19.2"
   },
   "scripts": {
     "lint": "eslint '*.ts' --quiet --fix",
